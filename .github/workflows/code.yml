@@ -1,0 +1,30 @@
+name: Run Debian on GitHub
+
+on: [push, pull_request]  # يتم تشغيله عند أي تغيير في المستودع
+
+jobs:
+  run-debian:
+    runs-on: ubuntu-latest  # تشغيل على بيئة Ubuntu
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3  # سحب الكود من المستودع
+
+      - name: Install Debian in a chroot
+        run: |
+          sudo apt update
+          sudo apt install -y debootstrap schroot
+          sudo mkdir -p /srv/debian
+          sudo debootstrap --arch=amd64 stable /srv/debian http://deb.debian.org/debian/
+          
+          echo "[debian]" | sudo tee -a /etc/schroot/schroot.conf
+          echo "description=Debian chroot" | sudo tee -a /etc/schroot/schroot.conf
+          echo "directory=/srv/debian" | sudo tee -a /etc/schroot/schroot.conf
+          echo "users=runner" | sudo tee -a /etc/schroot/schroot.conf
+          echo "root-users=root" | sudo tee -a /etc/schroot/schroot.conf
+          echo "type=directory" | sudo tee -a /etc/schroot/schroot.conf
+
+          echo "Debian setup complete!"
+
+      - name: Enter Debian and Run Commands
+        run: |
+          sudo schroot -c debian -u root -- bash -c "apt update && apt install -y neofetch && neofetch"
